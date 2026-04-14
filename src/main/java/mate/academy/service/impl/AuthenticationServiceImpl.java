@@ -21,26 +21,17 @@ public class AuthenticationServiceImpl
             throws AuthenticationException {
         Optional<User> userOptional = userService.findByEmail(email);
 
-        if (userOptional.isEmpty()) {
+        if (userOptional.isEmpty()
+                || !HashUtil.hashPassword(
+                        password,
+                        userOptional.get().getSalt())
+                .equals(userOptional.get().getPassword())) {
             throw new AuthenticationException(
                     "Invalid email or password"
             );
         }
 
-        User user = userOptional.get();
-
-        String hashedPassword = HashUtil.hashPassword(
-                password,
-                user.getSalt()
-        );
-
-        if (!user.getPassword().equals(hashedPassword)) {
-            throw new AuthenticationException(
-                    "Invalid email or password"
-            );
-        }
-
-        return user;
+        return userOptional.get();
     }
 
     @Override
