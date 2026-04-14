@@ -11,23 +11,33 @@ import mate.academy.service.UserService;
 import mate.academy.util.HashUtil;
 
 @Service
-public class AuthenticationServiceImpl implements AuthenticationService {
+public class AuthenticationServiceImpl
+        implements AuthenticationService {
     @Inject
     private UserService userService;
 
     @Override
     public User login(String email, String password)
             throws AuthenticationException {
+        Optional<User> userOptional = userService.findByEmail(email);
 
-        User user = userService.findByEmail(email)
-                .orElseThrow(() ->
-                        new AuthenticationException("User not found"));
+        if (userOptional.isEmpty()) {
+            throw new AuthenticationException(
+                    "Invalid email or password"
+            );
+        }
+
+        User user = userOptional.get();
 
         String hashedPassword = HashUtil.hashPassword(
-                password, user.getSalt());
+                password,
+                user.getSalt()
+        );
 
         if (!user.getPassword().equals(hashedPassword)) {
-            throw new AuthenticationException("Invalid password");
+            throw new AuthenticationException(
+                    "Invalid email or password"
+            );
         }
 
         return user;
@@ -36,20 +46,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Override
     public User register(String email, String password)
             throws RegistrationException {
-
-        Optional<User> existingUser = userService.findByEmail(email);
-
-        if (existingUser.isPresent()) {
-            throw new RegistrationException("User already exists");
+        if (userService.findByEmail(email).isPresent()) {
+            throw new RegistrationException(
+                    "User already exists"
+            );
         }
-
-        byte[] salt = HashUtil.getSalt();
-        String hashedPassword = HashUtil.hashPassword(password, salt);
 
         User user = new User();
         user.setEmail(email);
-        user.setSalt(salt);
-        user.setPassword(hashedPassword);
+        user.setPassword(password);
 
         return userService.add(user);
     }
